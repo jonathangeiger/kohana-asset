@@ -23,8 +23,8 @@ class Asset
 		$config = Kohana::config('assets');
 
 		// Lots of paths to deal with here
-		$base_dir = $config['javascripts'];
-		$cache_dir = $config['javascripts_cache'];
+		$base_dir = $config['js_dir'];
+		$cache_dir = $config['js_cache_dir'];
 		$cache = $config['cache'];
 		
 		// Initialize some variables

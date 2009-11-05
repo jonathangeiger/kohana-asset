@@ -8,7 +8,7 @@ return array(
 	 * 
 	 * url::base() is prepended to this automatically.
 	 */
-	'javascripts' => 'javascripts/',
+	'js_dir' => 'javascripts/',
 	
 	/**
 	 * Cache directory for javascripts
@@ -18,7 +18,7 @@ return array(
 	 * 
 	 * url::base() is prepended to this automatically.
 	 */ 
-	'javascripts_cache' => 'javascripts/cache/',
+	'js_cache_dir' => 'javascripts/cache/',
 
 	/**
 	 * Whether or not to cache. Cache expiration is handled 

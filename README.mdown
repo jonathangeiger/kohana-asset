@@ -33,7 +33,7 @@ That's all! Caching, cache expiration, and HTML generation is transparent and si
 
 Currently there are only a few options:
 
-**javascripts**
+**js_dir**
 
     'javascripts' => 'javascripts/',
 
@@ -41,7 +41,7 @@ Javascript directory to prefix to all generated files (except cache files...see 
 
 `url::base()` is prepended to this automatically.
  
-**javascripts_cache**
+**js\_cache\_dir**
 
     'javascripts_cache' => 'javascripts/cache/',
 
