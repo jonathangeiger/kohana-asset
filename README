@@ -1,0 +1,60 @@
+# Kohana Asset Helper
+
+This is a simple asset helper similar to rails' `javascript_include_tag`. It outputs 
+javascript tags for multiple asset files and automatically concatenates them into one file.
+
+Current only javascript tags are supported. Asset hosts, JSMin, and CSS support are definitely planned.
+
+## Usage
+
+In your view:
+
+    <?php echo asset::javascripts(array(
+    	'some/javascript/file.js',
+    	'another/javascript/file.js',
+    ), 'prefix') ?>
+
+Would output the following (if caching is disabled):
+
+    <script type="text/javascript" src="/javascripts/some/javascript/file.js"></script>
+    <script type="text/javascript" src="/javascripts/another/javascript/file.js"></script>
+
+And if caching were enabled, and the module is capable of writing to the filesystem it would output:
+
+    <script type="text/javascript" src="/javascripts/cache/prefix-1257384059.js"></script>
+
+Note that the second argument is an option cache file prefix. This is prepended to the cached file 
+so that multiple `asset::javascript()` calls can be made without the potential for them overwriting 
+each other's cache files. Just use different prefixes.
+
+That's all! Caching, cache expiration, and html generation is transparent and simple.
+
+## Configuration
+
+Currently there are only a few options:
+
+**javascripts**
+
+    'javascripts' => 'javascripts/',
+
+Javascript directory to prefix to all generated files (except cache files...see below).
+
+url::base() is prepended to this automatically.
+ 
+**javascripts_cache**
+
+    'javascripts_cache' => 'javascripts/cache/',
+
+Cache directory for javascripts. This directory is not created automagically.
+ 
+  * `javascripts/cache-` writes to `javascripts/cache-212985812.js`
+  * `javascripts/cache/` writes to `javascripts/cache/212985812.js`
+ 
+url::base() is prepended to this automatically.
+ 
+**cache**
+
+    'cache' => (Kohana::$environment == 'production') ? TRUE : FALSE
+
+Whether or not to cache. Cache expiration is handled automatically, based on whether or not a 
+file has changed. Garbage collection, is not currently handled by the system.
