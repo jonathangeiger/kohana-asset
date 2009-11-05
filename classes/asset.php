@@ -18,7 +18,7 @@ class Asset
 	 * @return void
 	 * @author Jonathan Geiger
 	 */
-	public static function javascripts(array $paths, $prefix)
+	public static function javascripts(array $paths, $prefix = NULL)
 	{
 		$config = Kohana::config('assets');
 
