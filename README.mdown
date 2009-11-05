@@ -1,6 +1,6 @@
 # Kohana Asset Helper
 
-This is a simple asset helper similar to rails' `javascript_include_tag`. It outputs 
+This is a simple asset helper similar to Ruby on Rails' `javascript_include_tag`. It outputs 
 javascript tags for multiple asset files and automatically concatenates them into one file.
 
 Current only javascript tags are supported. Asset hosts, JSMin, and CSS support are definitely planned.
@@ -24,10 +24,10 @@ And if caching were enabled, and the module is capable of writing to the filesys
     <script type="text/javascript" src="/javascripts/cache/prefix-1257384059.js"></script>
 
 Note that the second argument is an option cache file prefix. This is prepended to the cached file 
-so that multiple `asset::javascript()` calls can be made without the potential for them overwriting 
+so that multiple `asset::javascripts()` calls can be made without the potential for them overwriting 
 each other's cache files. Just use different prefixes.
 
-That's all! Caching, cache expiration, and html generation is transparent and simple.
+That's all! Caching, cache expiration, and HTML generation is transparent and simple.
 
 ## Configuration
 
@@ -39,7 +39,7 @@ Currently there are only a few options:
 
 Javascript directory to prefix to all generated files (except cache files...see below).
 
-url::base() is prepended to this automatically.
+`url::base()` is prepended to this automatically.
  
 **javascripts_cache**
 
@@ -50,7 +50,7 @@ Cache directory for javascripts. This directory is not created automagically.
   * `javascripts/cache-` writes to `javascripts/cache-212985812.js`
   * `javascripts/cache/` writes to `javascripts/cache/212985812.js`
  
-url::base() is prepended to this automatically.
+`url::base()` is prepended to this automatically.
  
 **cache**
 
