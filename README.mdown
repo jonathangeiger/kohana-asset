@@ -1,27 +1,75 @@
 # Kohana 3 Asset Helper
 
-This is a simple asset helper similar to Ruby on Rails' `javascript_include_tag`. It outputs 
-javascript tags for multiple asset files and automatically concatenates them into one file.
+This is a simple asset helper similar to Ruby on Rails' `javascript_include_tag` and `stylesheet_link_tag`. 
+It outputs HTML tags for multiple asset files and automatically concatenates them into one file.
 
-Current only javascript tags are supported. Asset hosts, JSMin, and CSS support are definitely planned.
+Current only `<script>` and `<style>` tags are supported. Asset hosts and minification are planned.
+	
+## Public Methods
 
+Wherever you see `$type` in the following method signatures it is expected to be either an `asset::JAVASCRIPT` or an `asset::STYLESHEET` constant.
+
+	/**
+	 * Generates <script> tags based on the paths provided. 
+	 * Caches automatically. File extensions (.js) are optional.
+	 *
+	 * @param array 	$paths		The paths to generate
+	 * @param string	$prefix 	A string to prefix to the cache file
+	 * @return string
+	 */
+	public static function javascripts(array $paths, $prefix = NULL);
+	
+	/**
+	 * Generates <link> tags based on the paths provided. 
+	 * Caches automatically. File extensions (.css) are optional.
+	 *
+	 * @param array 	$paths		The paths to generate
+	 * @param string	$prefix 	A string to prefix to the cache file
+	 * @return string
+	 */
+	public static function stylesheets(array $paths, $prefix = NULL);
+	
+	/**
+	 * Creates a full path for a particular file, taking into 
+	 * account things such as relative/absolute paths.
+	 *
+	 * Files are note checked for existence.
+	 * url::base() is NOT appended to this.
+	 *
+	 * @param array 	$path 		The path to fix
+	 * @param const 	$type 		The type of file we're working with
+	 * @return string
+	 */
+	public static function path($path, $type);
+	
+	/**
+	 * Determines the paths to be used for a set of asset includes. This method is 
+	 * called internally by asset::javascripts() and asset::stylesheets().
+	 *
+	 * @param array 	$paths 		The paths to generate tags for
+	 * @param string 	$prefix 	A prefix to add to any generated cache files
+	 * @param const 	$type 		The type of file we're working with
+	 * @return array
+	 */
+	public static function paths(array $paths, $prefix, $type);
+	
 ## Usage
 
-In your view:
+In your view you can call something like the following. Note that the `.js` extension is not provided on the path (it is optional):
 
     <?php echo asset::javascripts(array(
-    	'some/javascript/file.js',
-    	'another/javascript/file.js',
+    	'some/javascript/file',
+    	'another/javascript/file',
     ), 'prefix') ?>
 
 Would output the following (if caching is disabled):
 
-    <script type="text/javascript" src="/javascripts/some/javascript/file.js"></script>
-    <script type="text/javascript" src="/javascripts/another/javascript/file.js"></script>
+    <script type="text/javascript" src="/javascripts/some/javascript/file.js?1257384059"></script>
+    <script type="text/javascript" src="/javascripts/another/javascript/file.js?1257384059"></script>
 
 And if caching were enabled, and the module is capable of writing to the filesystem it would output:
 
-    <script type="text/javascript" src="/javascripts/cache/prefix-1257384059.js"></script>
+    <script type="text/javascript" src="/cache/prefix1257384059.js"></script>
 
 Note that the second argument is an option cache file prefix. This is prepended to the cached file 
 so that multiple `asset::javascripts()` calls can be made without the potential for them overwriting 
@@ -31,30 +79,10 @@ That's all! Caching, cache expiration, and HTML generation is transparent and si
 
 ## Configuration
 
-Currently there are only a few options:
+Currently, it is possible to configure quite a few options, specifically those pertaining to filesystem paths.
 
-**js_dir**
+Take a look at `config/assets.php` for a complete explanation of the properties.
 
-    'javascripts' => 'javascripts/',
+## Gotchas
 
-Javascript directory to prefix to all generated files (except cache files...see below).
-
-`url::base()` is prepended to this automatically.
- 
-**js\_cache\_dir**
-
-    'javascripts_cache' => 'javascripts/cache/',
-
-Cache directory for javascripts. This directory is not created automagically.
- 
-  * `javascripts/cache-` writes to `javascripts/cache-212985812.js`
-  * `javascripts/cache/` writes to `javascripts/cache/212985812.js`
- 
-`url::base()` is prepended to this automatically.
- 
-**cache**
-
-    'cache' => (Kohana::$environment == 'production') ? TRUE : FALSE
-
-Whether or not to cache. Cache expiration is handled automatically, based on whether or not a 
-file has changed. Garbage collection, is not currently handled by the system.
+As of yet, there is no error suppression or checking of file permissions. Kohana will probably generate an error in such a case. It is your responsibility to make sure all configured directories exist and are readable/writable by the server.
