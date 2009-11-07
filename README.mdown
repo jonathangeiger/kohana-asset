@@ -58,7 +58,3 @@ That's all! Caching, cache expiration, and HTML generation is transparent and si
 Currently, it is possible to configure quite a few options, specifically those pertaining to filesystem paths.
 
 Take a look at `config/assets.php` for a complete explanation of the properties.
-
-## Gotchas
-
-As of yet, there is no error suppression or checking of file permissions. Kohana will probably generate an error in such a case. It is your responsibility to make sure all configured directories exist and are readable/writable by the server.
