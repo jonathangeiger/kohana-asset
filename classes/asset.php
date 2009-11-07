@@ -120,7 +120,7 @@ class Asset
 	 */
 	public function render()
 	{
-		$paths = $this->paths();
+		$paths = $this->paths;
 		$html = '';
 		
 		switch ($this->type)
@@ -176,7 +176,7 @@ class Asset
 	 * @return void
 	 * @author Jonathan Geiger
 	 */
-	protected function process_paths($paths)
+	protected function process_paths()
 	{
 		// Check the flag so we're not going through this multiple times
 		if (!$this->processed)
@@ -217,8 +217,6 @@ class Asset
 			// Make sure to update the processed flag so we only go through this once
 			$this->processed = TRUE;
 		}
-		
-		return $this->paths;
 	}
 		
 	/**
