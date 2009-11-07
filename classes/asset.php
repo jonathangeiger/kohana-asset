@@ -190,7 +190,7 @@ class Asset
 
 				// Gather last modified time, the greatest of which will 
 				// be used in the filename of the cache file	
-				if (($time = filemtime($this->root.$path)) > $greatest) 
+				if (($time = @filemtime($this->root.$path)) > $greatest) 
 				{
 					$greatest = $time;
 				}
@@ -252,6 +252,9 @@ class Asset
 		// The total number of bytes written to the file
 		$written = 0;
 		
+		// Disable error reporting for now
+		$ERR = error_reporting(0);
+		
 		// Open that file!
 		$cache = fopen($cache, 'w+');
 				
@@ -276,6 +279,9 @@ class Asset
 			// Done here
 			fclose($cache);
 		}
+		
+		// Re-enable errors
+		error_reporting($ERR);
 		
 		return $written;
 	}
