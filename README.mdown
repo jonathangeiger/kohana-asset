@@ -7,7 +7,7 @@ Current only `<script>` and `<style>` tags are supported. Asset hosts and minifi
 	
 ## Public Methods
 
-Wherever you see `$type` in the following method signatures it is expected to be either an `asset::JAVASCRIPT` or an `asset::STYLESHEET` constant.
+Two static methods are offered as convenience methods, although they are actually manipulating an underlying `Asset` instance. 
 
 	/**
 	 * Generates <script> tags based on the paths provided. 
@@ -28,30 +28,6 @@ Wherever you see `$type` in the following method signatures it is expected to be
 	 * @return string
 	 */
 	public static function stylesheets(array $paths, $prefix = NULL);
-	
-	/**
-	 * Creates a full path for a particular file, taking into 
-	 * account things such as relative/absolute paths.
-	 *
-	 * Files are note checked for existence.
-	 * url::base() is NOT appended to this.
-	 *
-	 * @param array 	$path 		The path to fix
-	 * @param const 	$type 		The type of file we're working with
-	 * @return string
-	 */
-	public static function path($path, $type);
-	
-	/**
-	 * Determines the paths to be used for a set of asset includes. This method is 
-	 * called internally by asset::javascripts() and asset::stylesheets().
-	 *
-	 * @param array 	$paths 		The paths to generate tags for
-	 * @param string 	$prefix 	A prefix to add to any generated cache files
-	 * @param const 	$type 		The type of file we're working with
-	 * @return array
-	 */
-	public static function paths(array $paths, $prefix, $type);
 	
 ## Usage
 

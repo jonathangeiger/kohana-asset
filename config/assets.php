@@ -3,16 +3,16 @@
 return array(
 	
 	/**
-	 * The location on the filesystem to the paths below. 
-	 * 
-	 * This is assumed to include url::base() and end with a trailing slash.
-	 */
-	'root' => DOCROOT,
-	
-	/**
 	 * Config for calls to asset::javascripts()
 	 */
 	'javascripts' => array(
+		
+		/**
+		 * The location on the filesystem to the paths below. 
+		 * 
+		 * This is assumed to include url::base() and end with a trailing slash.
+		 */
+		'root' => DOCROOT,
 		
 		/**
 		 * Javascript directory to prefix to all generated 
@@ -33,13 +33,27 @@ return array(
 		 * 
 		 * Garbage collection is not currently handled by the system
 		 */
-		'cache'	=> TRUE
+		'cache'	=> TRUE,
+		
+		/**
+		 * Prefix for cached javascript files. url::base() is automatically 
+		 * added to this in a <script> tag and 'root' is automatically 
+		 * added when referencing it on the filesystem
+		 */
+		'cache_prefix' => 'cache/'
 	),
 	
 	/**
 	 * Config for calls to asset::stylesheets()
 	 */
 	'stylesheets' => array(
+		
+		/**
+		 * The location on the filesystem to the paths below. 
+		 * 
+		 * This is assumed to include url::base() and end with a trailing slash.
+		 */
+		'root' => DOCROOT,
 		
 		/**
 		 * Javascript directory to prefix to all generated 
@@ -60,35 +74,13 @@ return array(
 		 * 
 		 * Garbage collection is not currently handled by the system
 		 */
-		'cache'	=> TRUE
-	),
-	
-	/**
-	 * Config for cached files
-	 */
-	'cache' => array(
-		/**
-		 * Cache directory for all cached files. Note that javascript AND css
-		 * files will be prefixed with this. 
-		 * 
-		 * This may seem a bit "unclean" but it's ultimately better: there's 
-		 * only one directory to delete if you want to manually expire the 
-		 * cache. 
-		 * 
-		 * Also, stylesheets won't have any problems with url() references
-		 * if you keep it at the same level as your stylesheets directory.
-		 * If cache files were cached in the stylesheets directory, it would 
-		 * get all cluttered with source files and cached files.
-		 * 
-		 * url::base() is prepended to this automatically when the 
-		 * script/link tag is generated.
-		 */ 
-		'prefix' => 'cache/',
+		'cache'	=> TRUE,
 		
 		/**
-		 * Note that this is slightly different from the actual file type extensions.
-		 * Just use it if you want to append something to the cache filename.
+		 * Prefix for cached css files. url::base() is automatically 
+		 * added to this in a <link> tag and 'root' is automatically 
+		 * added when referencing it on the filesystem
 		 */
-		'extension' => NULL
+		'cache_prefix' => 'cache/'
 	)
 );

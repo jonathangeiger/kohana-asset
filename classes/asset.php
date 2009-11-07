@@ -14,7 +14,6 @@ class Asset
 {
 	const JAVASCRIPT = 'javascripts';
 	const STYLESHEET = 'stylesheets';
-	const CACHE = 'cache';
 	
 	/**
 	 * Generates javascript tags based on the paths provided. 
@@ -27,15 +26,8 @@ class Asset
 	 */
 	public static function javascripts(array $paths, $prefix = NULL)
 	{		
-		$scripts = '';
-		
-		// Just loop through each one and output it
-		foreach(asset::paths($paths, $prefix, asset::JAVASCRIPT) as $path)
-		{
-			$scripts .= html::script($path)."\n";
-		}
-		
-		return $scripts;
+		$assets = new Asset($paths, asset::JAVASCRIPT, $prefix);
+		return $assets->render();
 	}
 	
 	/**
@@ -46,41 +38,130 @@ class Asset
 	 */
 	public static function stylesheets(array $paths, $prefix = NULL)
 	{		
-		$scripts = '';
+		$assets = new Asset($paths, asset::STYLESHEET, $prefix);
+		return $assets->render();
+	}
+	
+	/**
+	 * The paths we're working with
+	 *
+	 * @var array
+	 */
+	protected $paths;
+	
+	/**
+	 * Whether or not the paths have been processed
+	 */
+	protected $processed = FALSE;
+	
+	/**
+	 * The asset type
+	 *
+	 * @var string
+	 */
+	protected $type;
+	
+	/**
+	 * Final rendered HTML
+	 *
+	 * @var string
+	 */
+	protected $html;
+	
+	/**
+	 * Loaded from the config
+	 *
+	 * @var string
+	 */
+	protected $prefix;
+	protected $extension;
+	protected $cache;
+	protected $cache_prefix = '';
+	protected $root;
+
+	
+	/**
+	 * Constructor 
+	 * 
+	 * @author Jonathan Geiger
+	 */
+	public function __construct(array $paths, $type, $prefix = '')
+	{
+		static $config;
 		
-		// Just loop through each one and output it
-		foreach(asset::paths($paths, $prefix, asset::STYLESHEET) as $path)
+		// Only do this once
+		if (!$config)
 		{
-			$scripts .= html::style($path)."\n";
+			$config = Kohana::config('assets');
 		}
 		
-		return $scripts;
+		// Load the configuration as instance variables
+		foreach (arr::extract($config[$type], array('prefix', 'extension', 'cache', 'cache_prefix', 'root')) as $key => $value)
+		{
+			$this->$key = $value;
+		}
+		
+		// Update the cache_prefix to include the optional prefix
+		$this->cache_prefix .= $prefix;
+		
+		// And set the rest of the instance variables
+		$this->paths = $paths;
+		$this->type = $type;
+		
+		// Process the paths
+		$this->process_paths();
+	}
+	
+	/**
+	 * Renders the assets out to HTML
+	 *
+	 * @return void
+	 * @author Jonathan Geiger
+	 */
+	public function render()
+	{
+		$paths = $this->paths();
+		$html = '';
+		
+		switch ($this->type)
+		{
+			case asset::JAVASCRIPT:
+				foreach ($paths as $path)
+				{
+					$html .= html::script($path)."\n";	
+				}
+				break;
+				
+			case asset::STYLESHEET:
+				foreach ($paths as $path)
+				{
+					$html .= html::style($path)."\n";	
+				}
+				break;
+		}
+		
+		return $html;
 	}
 	
 	/**
 	 * Creates a full path for a particular file, taking into account things such as relative/absolute paths
 	 *
 	 * @param array 	$path 		The path to fix
-	 * @param string 	$type 		The type of file we're working with
 	 * @return void
 	 * @author Jonathan Geiger
 	 */
-	public static function path($path, $type)
-	{	
-		// Find the prefix and extension
-		$prefix = asset::config($type, 'prefix');
-		$extension = asset::config($type, 'extension');
-		
+	protected function path($path)
+	{			
 		// Append the prefix only if it's a relative path
 		if (substr($path, 0, 1) != '/')
 		{
-			$path = $prefix.$path;
+			$path = $this->prefix.$path;
 		}
 		
-		// Ensure we have a file extension (except caches)
-		if ($type !== asset::CACHE && $extension !== substr($path, -strlen($extension)))
+		// Ensure we have a file extension
+		if ($this->extension !== substr($path, -strlen($this->extension)))
 		{
-			$path = $path.$extension;
+			$path = $path.$this->extension;
 		}
 				
 		return $path;
@@ -95,76 +176,51 @@ class Asset
 	 * @return void
 	 * @author Jonathan Geiger
 	 */
-	public static function paths(array $paths, $prefix, $type)
+	protected function process_paths($paths)
 	{
-		$greatest = 0;
-		$docroot = asset::config('root');
-		$count = count($paths);
-			
-		// Check if the cache needs to be renewed
-		for ($i = 0; $i < $count; $i++)
-		{			
-			$path = asset::path($paths[$i], $type);
-				
-			// Gather last modified time, the greatest of which will 
-			// be used in the filename of the cache file	
-			if (($time = @filemtime($docroot.$path)) > $greatest) 
+		// Check the flag so we're not going through this multiple times
+		if (!$this->processed)
+		{
+			$greatest = 0;
+
+			// Check if the cache needs to be renewed
+			foreach ($this->paths as $i => $path)
+			{			
+				$path = $this->path($path);
+
+				// Gather last modified time, the greatest of which will 
+				// be used in the filename of the cache file	
+				if (($time = filemtime($this->root.$path)) > $greatest) 
+				{
+					$greatest = $time;
+				}
+
+				// Create the scripts, which may be discarded altogether 
+				// if the cache file is present
+				$paths[$i] = $path."?".$time;
+			}
+
+			// Now that we've found the cache path, we can 
+			// just concatenate it all together
+			$cache = $this->cache_prefix.$greatest.$this->extension;
+
+			// Check the cache
+			if ($this->cached($this->root.$cache) || $this->cache($paths, $this->root.$cache))
 			{
-				$greatest = $time;
+				$this->paths = array($cache);
+			}
+			else
+			{
+				$this->paths = $paths;
 			}
 			
-			// Create the scripts, which may be discarded altogether 
-			// if the cache file is present
-			$paths[$i] = $path."?".$time;
+			// Make sure to update the processed flag so we only go through this once
+			$this->processed = TRUE;
 		}
 		
-		// Now that we've found the cache path, we can 
-		// just concatenate it all together
-		$cache = asset::path($prefix.$greatest, asset::CACHE).asset::config($type, 'extension');
-		
-		// Check the cache
-		if (asset::cached($docroot.$cache, $type) || asset::cache($paths, $type, $cache))
-		{
-			return array($cache);
-		}
-		else
-		{
-			return $paths;
-		}
+		return $this->paths;
 	}
-	
-	/**
-	 * Simple accessor for configuration properties
-	 *
-	 * @param string 	$group  The group (main array key) to find
-	 * @param string 	$key 	The key (sub-array key) to retrieve
-	 * @return void
-	 * @author Jonathan Geiger
-	 */
-	protected static function config($group = NULL, $key = NULL)
-	{
-		static $config = NULL;
 		
-		// First time, load that config
-		if ($config === NULL)
-		{
-			$config = Kohana::config('assets');
-		}
-		
-		if ($group === NULL)
-		{
-			return $config;
-		}
-		else if ($key === NULL)
-		{
-			return $config[$group];
-		}
-		else
-		{
-			return $config[$group][$key];
-		}		
-	}
-	
 	/**
 	 * Determines whether or not a file is cached and 
 	 * the system is accepting cached files
@@ -174,9 +230,9 @@ class Asset
 	 * @return void
 	 * @author Jonathan Geiger
 	 */
-	protected static function cached($file, $type)
+	protected function cached($file)
 	{
-		return (asset::config($type, 'cache') && file_exists($file));
+		return ($this->cache && file_exists($file));
 	}
 	
 	/**
@@ -188,10 +244,10 @@ class Asset
 	 * @return mixed
 	 * @author Jonathan Geiger
 	 */
-	protected static function cache($paths, $type, $cache)
+	protected function cache($paths, $cache)
 	{
 		// Make sure we're allowed to cache
-		if (!asset::config($type, 'cache')) return FALSE;
+		if (!$this->cache) return FALSE;
 		
 		// The total number of bytes written to the file
 		$written = 0;
@@ -204,7 +260,7 @@ class Asset
 			// That sucks. Another loop
 			foreach ($paths as $path)
 			{						
-				$path = asset::config('root').$path;	
+				$path = $this->root.$path;	
 				
 				// Paths could potentially have a cachebuster on 
 				// the end of them. Make sure to strip it.
