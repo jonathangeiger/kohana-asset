@@ -11,6 +11,14 @@ return array(
 		 * An array of hosts to be prepended to the path. A random one
 		 * will be selected from the array for each request.
 		 * 
+		 * If the key of the particular item selected from the array is a string, the 
+		 * key is assumed to be the host and the value is assumed to be a path specifying 
+		 * a different root to prepend to the path for saving the cache file. This allows you 
+		 * to save cache files in different places on the filesystem for different hosts.
+		 * 
+		 * If the key of the particular item selected is an integer, the value is assumed 
+		 * to be the host and the root defaults to the value for the `root` config option.
+		 * 
 		 * If this is empty it will not be used.
 		 * 
 		 * Kohana::$base_url will not be applied when using this.
@@ -61,6 +69,14 @@ return array(
 		/**
 		 * An array of hosts to be prepended to the path. A random one
 		 * will be selected from the array for each request.
+		 * 
+		 * If the key of the particular item selected from the array is a string, the 
+		 * key is assumed to be the host and the value is assumed to be a path specifying 
+		 * a different root to prepend to the path for saving the cache file. This allows you 
+		 * to save cache files in different places on the filesystem for different hosts.
+		 * 
+		 * If the key of the particular item selected is an integer, the value is assumed 
+		 * to be the host and the root defaults to the value for the `root` config option.
 		 * 
 		 * If this is empty it will not be used.
 		 * 

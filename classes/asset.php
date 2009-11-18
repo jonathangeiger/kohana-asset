@@ -71,6 +71,21 @@ class Asset
 	protected $hosts;
 	
 	/**
+	 * The working host
+	 *
+	 * @var string
+	 */
+	protected $host;
+	
+	/**
+	 * The working host root. Used in case the cache file 
+	 * needs to be saved somewhere else
+	 *
+	 * @var string
+	 */
+	protected $host_root;
+	
+	/**
 	 * The path to the files
 	 * 
 	 * @var string
@@ -97,6 +112,13 @@ class Asset
 	 * @var boolean
 	 */
 	protected $cache;
+	
+	/**
+	 * Whether or not items were successfully cached
+	 *
+	 * @var boolean
+	 */
+	protected $cached;
 	
 	/**
 	 * Prefix for cached files.
@@ -126,17 +148,16 @@ class Asset
 			$this->$key = $value;
 		}
 		
-		// Flip hosts for easy random access
-		if (!empty($this->hosts) && !arr::is_assoc($this->hosts))
-		{
-			$this->hosts = array_flip($this->hosts);
-		}
-		
 		// Update the cache_prefix to include the optional prefix
 		$this->cache_prefix .= $prefix;
 		
 		// Set the type
 		$this->type = $type;
+		
+		// Set the working host_root and host, which is determined by the host
+		$host = $this->host();
+		$this->host_root = $host['root'];
+		$this->host = $host['host'];
 		
 		// Process the paths
 		$this->process_files($files);
@@ -165,7 +186,7 @@ class Asset
 		{
 			foreach($this->files as $file)
 			{
-				if ($file['cache']) continue;
+				if ($this->cached && $file['cache']) continue;
 				
 				switch($this->type)
 				{
@@ -263,11 +284,9 @@ class Asset
 			// Append a cachebuster
 			$info['remote'] .= '?'.$info['mtime'];
 			
-			// Prepend a random host
-			if ($this->hosts) 
-			{
-				$info['remote'] = array_rand($this->hosts).$info['remote'];
-			}	
+			// The host is empty if there aren't any 
+			// configured, so the prepend is safe
+			$info['remote'] = $this->host.$info['remote'];
 		} 
 		
 		// Nothing found? Make sure we don't try and 
@@ -310,24 +329,69 @@ class Asset
 			// Now that we've found the cache path, we can 
 			// just concatenate it all together
 			$cache = $this->cache_prefix.$greatest.$this->extension;
-
+			
+			// Set this flag so that we know not to output cached items
+			$this->cached = FALSE;
+			
 			// Check the cache
-			if ($this->cached($this->root.$cache) || $this->cache($files, $this->root.$cache))
+			if ($this->cached($this->host_root.$cache) || $this->cache($files, $this->host_root.$cache))
 			{
 				// Append this to the files array just as if it were a normal file
 				// When it's all rendered, anything with cache=FALSE will be outputted, since it wasn't cached
 				array_unshift($files, array(
-					'local' => $this->root.$cache,
-					'remote' => (!empty($this->hosts)) ? array_rand($this->hosts).$cache : $cache,
+					'local' => $this->host_root.$cache,
+					'remote' => $this->host.$cache,
 					'cache' => FALSE,
 					'mtime' => NULL
 				));
+				
+				// Set this flag so that we know not to output cached items
+				$this->cached = TRUE;
 			}
 			
 			$this->files = $files;
 		}
 	}
 		
+	/**
+	 * Returns a random host and root for that host
+	 *
+	 * @return array
+	 * @author Jonathan Geiger
+	 **/
+	protected function host()
+	{
+		// Always the same without hosts
+		if (empty($this->hosts)) 
+		{
+			return array(
+				'host' => '', 
+				'root' => $this->root
+			);	
+		}
+		
+		$key = array_rand($this->hosts);
+		
+		// If the key is an integer, the value is the host 
+		// and root defaults to $this->root
+		if (is_int($key))
+		{
+			return array(
+				'host' => $this->hosts[$key],
+				'root' => $this->root
+			);
+		}
+		// Otherwise, it's an associative item and the key 
+		// is the host and root is the value of the item
+		else
+		{
+			return array(
+				'host' => $key,
+				'root' => $this->hosts[$key]
+			);
+		}
+	}
+	
 	/**
 	 * Determines whether or not a file is cached and 
 	 * the system is accepting cached files
