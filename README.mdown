@@ -3,11 +3,11 @@
 This is a simple asset helper similar to Ruby on Rails' `javascript_include_tag` and `stylesheet_link_tag`. 
 It outputs HTML tags for multiple asset files and automatically concatenates them into one file.
 
-Current only `<script>` and `<style>` tags are supported. Asset hosts and minification are planned.
+Current only `<script>` and `<style>` tags are supported. Minification is planned.
 	
 ## Public Methods
 
-Two static methods are offered as convenience methods, although they are actually manipulating an underlying `Asset` instance. 
+Two static methods are offered as factories for instantiating new `Asset` classes. Since an instantiated object doesn't do much anyway, it's recommended to use these methods. 
 
 	/**
 	 * Generates javascript tags based on the paths provided. 
@@ -15,16 +15,14 @@ Two static methods are offered as convenience methods, although they are actuall
 	 *  
 	 * @param array 	$files		The files to generate
 	 * @param string	$prefix 	A string to prefix to the cache file
-	 * @return void
-	 * @author Jonathan Geiger
+	 * @return string
 	 */
 	public static function javascripts(array $files, $prefix = NULL);
 	
 	/**
 	 * @param array 	$files		The files to generate
 	 * @param string	$prefix 	A string to prefix to the cache file
-	 * @return void
-	 * @author Jonathan Geiger
+	 * @return string
 	 */
 	public static function stylesheets(array $files, $prefix = NULL);
 	
@@ -64,11 +62,12 @@ Take a look at `config/assets.php` for a complete explanation of the properties.
 
 The following are examples of files that are acceptable to pass in the `$files` array but are handled in a special way:
 
-   * *Files containing "://"*, such as `http://domain.com/javascripts/file.js` will
+   * **Files containing `://`**, such as `http://domain.com/javascripts/file.js` will
      not be processed. The only thing that will be changed is that an extension 
      will be added if it doesn't already have one.
-   * *Files beginning with a "/"*, such as `/some/javascript/file` will not have the 
+   * **Files beginning with a `/`**, such as `/some/javascript/file` will not have the 
      `prefix` configuration option added to them.
-   * *Files that can't be found on the filesystem* will, quite obviously, never be cached. 
-     It will, instead, be outputted as its own HTML tag. The file will still be processed
-     according to the normal rules (a `prefix` and `extension`, random `hosts` will be added).
+   * **Files that can't be found on the filesystem** will, quite obviously, never be cached. 
+     The file will, instead, be outputted as its own HTML tag. The file will still be processed
+     according to the normal rules (a `prefix` and `extension`, random `hosts` will be added) and 
+     to the rules above.
