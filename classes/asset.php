@@ -19,27 +19,27 @@ class Asset
 	 * Generates javascript tags based on the paths provided. 
 	 * Caches automatically. File extensions (.js) are optional.
 	 *  
-	 * @param array 	$paths		The paths to generate
+	 * @param array 	$files		The files to generate
 	 * @param string	$prefix 	A string to prefix to the cache file
 	 * @return void
 	 * @author Jonathan Geiger
 	 */
-	public static function javascripts(array $paths, $prefix = NULL)
+	public static function javascripts(array $files, $prefix = NULL)
 	{		
-		$assets = new Asset($paths, asset::JAVASCRIPT, $prefix);
-		return $assets->render();
+		$asset = new Asset($files, asset::JAVASCRIPT, $prefix);
+		return $asset->render();
 	}
 	
 	/**
-	 * @param array 	$paths		The paths to generate
+	 * @param array 	$files		The files to generate
 	 * @param string	$prefix 	A string to prefix to the cache file
 	 * @return void
 	 * @author Jonathan Geiger
 	 */
-	public static function stylesheets(array $paths, $prefix = NULL)
+	public static function stylesheets(array $files, $prefix = NULL)
 	{		
-		$assets = new Asset($paths, asset::STYLESHEET, $prefix);
-		return $assets->render();
+		$asset = new Asset($files, asset::STYLESHEET, $prefix);
+		return $asset->render();
 	}
 	
 	/**
@@ -47,12 +47,7 @@ class Asset
 	 *
 	 * @var array
 	 */
-	protected $paths;
-	
-	/**
-	 * Whether or not the paths have been processed
-	 */
-	protected $processed = FALSE;
+	protected $files;
 	
 	/**
 	 * The asset type
@@ -69,23 +64,53 @@ class Asset
 	protected $html;
 	
 	/**
-	 * Loaded from the config
+	 * An array of asset hosts to use
 	 *
+	 * @var array
+	 */
+	protected $hosts;
+	
+	/**
+	 * The path to the files
+	 * 
+	 * @var string
+	 */
+	protected $root;
+	
+	/**
+	 * Prefix to generated paths
+	 * 
 	 * @var string
 	 */
 	protected $prefix;
+	
+	/**
+	 * Extension to the files
+	 * 
+	 * @var string
+	 */
 	protected $extension;
+	
+	/**
+	 * Whether or not to cache
+	 *
+	 * @var boolean
+	 */
 	protected $cache;
-	protected $cache_prefix = '';
-	protected $root;
-
+	
+	/**
+	 * Prefix for cached files.
+	 * 
+	 * @var string
+	 */
+	protected $cache_prefix;
 	
 	/**
 	 * Constructor 
 	 * 
 	 * @author Jonathan Geiger
 	 */
-	public function __construct(array $paths, $type, $prefix = '')
+	public function __construct(array $files, $type, $prefix = '')
 	{
 		static $config;
 		
@@ -95,109 +120,191 @@ class Asset
 			$config = Kohana::config('assets');
 		}
 		
-		// Load the configuration as instance variables
-		foreach (arr::extract($config[$type], array('prefix', 'extension', 'cache', 'cache_prefix', 'root')) as $key => $value)
+		// Load the configuration
+		foreach($config[$type] as $key => $value)
 		{
 			$this->$key = $value;
+		}
+		
+		// Flip hosts for easy random access
+		if (!empty($this->hosts) && !arr::is_assoc($this->hosts))
+		{
+			$this->hosts = array_flip($this->hosts);
 		}
 		
 		// Update the cache_prefix to include the optional prefix
 		$this->cache_prefix .= $prefix;
 		
-		// And set the rest of the instance variables
-		$this->paths = $paths;
+		// Set the type
 		$this->type = $type;
 		
 		// Process the paths
-		$this->process_paths();
+		$this->process_files($files);
+	}
+	
+	/**
+	 * Proxies to render() to show the links
+	 *
+	 * @return string
+	 * @author Jonathan Geiger
+	 */
+	public function __toString()
+	{
+		return $this->render();
 	}
 	
 	/**
 	 * Renders the assets out to HTML
 	 *
-	 * @return void
+	 * @return string
 	 * @author Jonathan Geiger
 	 */
 	public function render()
 	{
-		$paths = $this->paths;
-		$html = '';
-		
-		switch ($this->type)
+		if (empty($this->html))
 		{
-			case asset::JAVASCRIPT:
-				foreach ($paths as $path)
-				{
-					$html .= html::script($path)."\n";	
-				}
-				break;
+			foreach($this->files as $file)
+			{
+				if ($file['cache']) continue;
 				
-			case asset::STYLESHEET:
-				foreach ($paths as $path)
+				switch($this->type)
 				{
-					$html .= html::style($path)."\n";	
+					case Asset::JAVASCRIPT:
+						$this->html .= html::script($file['remote'])."\n";
+						break;
+						
+					case Asset::STYLESHEET:
+						$this->html .= html::style($file['remote'])."\n";
+						break;
 				}
-				break;
+			}
 		}
 		
-		return $html;
+		return $this->html;
 	}
 	
 	/**
-	 * Creates a full path for a particular file, taking into account things such as relative/absolute paths
+	 * Returns all of the files after they've been processed. Each file is represented 
+	 * by an array containing the following keys and values:
+	 * 
+	 * remote => the remote path that will be used in the HTML tag
+	 * local => the location of the file on the filesystem
+	 * mtime => the filemtime() of the file or NULL if the file wasn't found
+	 * cache => whether or not the file can be cached. This is determined by the 
+	 * 			config and whether or not the file was found on the filesystem
+	 *
+	 * @return array
+	 * @author Jonathan Geiger
+	 **/
+	public function files()
+	{
+		return $this->files;
+	}
+	
+	/**
+	 * Determines a large amount of information about a particular 
+	 * file, all of which are useful in the final output.
 	 *
 	 * @param array 	$path 		The path to fix
 	 * @return void
 	 * @author Jonathan Geiger
 	 */
-	protected function path($path)
+	protected function file_info($path)
 	{			
-		// Append the prefix only if it's a relative path
-		if (substr($path, 0, 1) != '/')
-		{
-			$path = $this->prefix.$path;
-		}
-		
 		// Ensure we have a file extension
 		if ($this->extension !== substr($path, -strlen($this->extension)))
 		{
 			$path = $path.$this->extension;
 		}
+		
+		// Set up the initial array to return
+		$info = array(
+			// Path that is used for the HTML tag
+			'remote' => $path,
+			// Path on the filesystem
+			'local' => $path,
+			// Last modified time
+			'mtime' => NULL,
+			// Whether or not to cache
+			'cache' => $this->cache
+		);
+		
+		// Check to see if it's a path pointing to a domain, 
+		// these files are ignored, but still outputted.
+		if (FALSE !== strpos($path, '://'))
+		{
+			// Don't cache these
+			$info['cache'] = FALSE;
+			
+			// Disallow local path access
+			$info['local'] = NULL;
+			
+			// Just exit early. There's nothing else that can be done
+			return $info;
+		}
 				
-		return $path;
+		// Append the prefix only if it's a relative path
+		if (substr($path, 0, 1) != '/')
+		{
+			$info['remote'] = $info['local'] = $this->prefix.$path;
+		}
+		
+		// Append root to the path. We'll need this to see if we 
+		// can actually locate the file on the FS
+		$info['local'] = $this->root.$info['local'];
+		
+		// See if we can find it.
+		$info['mtime'] = @filemtime($info['local']);
+		
+		// filemtime() doubles as a check for file existence,
+		// if it's not there the file won't be cached.
+		if ($info['mtime'])
+		{
+			// Append a cachebuster
+			$info['remote'] .= '?'.$info['mtime'];
+			
+			// Prepend a random host
+			if ($this->hosts) 
+			{
+				$info['remote'] = array_rand($this->hosts).$info['remote'];
+			}	
+		} 
+		
+		// Nothing found? Make sure we don't try and 
+		// cache this down the line and it's outputted as its own tag
+		else
+		{
+			$info['cache'] = FALSE;
+		}
+				
+		return $info;
 	}
 	
 	/**
 	 * Determines the paths to be used for a set of asset includes.
 	 *
-	 * @param array 	$paths 		The paths to generate tags for
-	 * @param string 	$prefix 	A prefix to add to any generated cache files
-	 * @param string 	$type 		The type of file we're working with
+	 * @param array 	$files 		The paths to generate tags for
 	 * @return void
 	 * @author Jonathan Geiger
 	 */
-	protected function process_paths()
+	protected function process_files(array $files)
 	{
 		// Check the flag so we're not going through this multiple times
-		if (!$this->processed)
+		if (empty($this->files))
 		{
 			$greatest = 0;
 
 			// Check if the cache needs to be renewed
-			foreach ($this->paths as $i => $path)
+			foreach ($files as $i => $file)
 			{			
-				$path = $this->path($path);
-
+				$files[$i] = $file = $this->file_info($file);
+				
 				// Gather last modified time, the greatest of which will 
 				// be used in the filename of the cache file	
-				if (($time = @filemtime($this->root.$path)) > $greatest) 
+				if ($file['mtime'] > $greatest) 
 				{
-					$greatest = $time;
-				}
-
-				// Create the scripts, which may be discarded altogether 
-				// if the cache file is present
-				$paths[$i] = $path."?".$time;
+					$greatest = $file['mtime'];
+				}			
 			}
 
 			// Now that we've found the cache path, we can 
@@ -205,17 +312,19 @@ class Asset
 			$cache = $this->cache_prefix.$greatest.$this->extension;
 
 			// Check the cache
-			if ($this->cached($this->root.$cache) || $this->cache($paths, $this->root.$cache))
+			if ($this->cached($this->root.$cache) || $this->cache($files, $this->root.$cache))
 			{
-				$this->paths = array($cache);
-			}
-			else
-			{
-				$this->paths = $paths;
+				// Append this to the files array just as if it were a normal file
+				// When it's all rendered, anything with cache=FALSE will be outputted, since it wasn't cached
+				array_unshift($files, array(
+					'local' => $this->root.$cache,
+					'remote' => (!empty($this->hosts)) ? array_rand($this->hosts).$cache : $cache,
+					'cache' => FALSE,
+					'mtime' => NULL
+				));
 			}
 			
-			// Make sure to update the processed flag so we only go through this once
-			$this->processed = TRUE;
+			$this->files = $files;
 		}
 	}
 		
@@ -224,7 +333,6 @@ class Asset
 	 * the system is accepting cached files
 	 *
 	 * @param string 	$file 	The file to check is cached
-	 * @param string 	$type  	The type of file we're working with
 	 * @return void
 	 * @author Jonathan Geiger
 	 */
@@ -237,12 +345,11 @@ class Asset
 	 * Caches a group of files
 	 *
 	 * @param string 	$paths 	The paths to cache
-	 * @param string 	$type  	The type of file we're working with
 	 * @param string 	$cache 	A path to the file to concatenate $paths to
 	 * @return mixed
 	 * @author Jonathan Geiger
 	 */
-	protected function cache($paths, $cache)
+	protected function cache($files, $cache)
 	{
 		// Make sure we're allowed to cache
 		if (!$this->cache) return FALSE;
@@ -259,19 +366,13 @@ class Asset
 		if ($cache)
 		{
 			// That sucks. Another loop
-			foreach ($paths as $path)
-			{						
-				$path = $this->root.$path;	
-				
-				// Paths could potentially have a cachebuster on 
-				// the end of them. Make sure to strip it.
-				if ($pos = strpos($path, '?'))
+			foreach ($files as $file)
+			{					
+				if ($file['cache'])	
 				{
-					$path = substr($path, 0, $pos);
+					// Write to the cache
+					$written += fwrite($cache, file_get_contents($file['local'])."\n");
 				}
-
-				// Write to the cache
-				$written += fwrite($cache, file_get_contents($path)."\n");
 			}
 			
 			// Done here
