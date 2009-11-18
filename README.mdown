@@ -10,24 +10,23 @@ Current only `<script>` and `<style>` tags are supported. Asset hosts and minifi
 Two static methods are offered as convenience methods, although they are actually manipulating an underlying `Asset` instance. 
 
 	/**
-	 * Generates <script> tags based on the paths provided. 
+	 * Generates javascript tags based on the paths provided. 
 	 * Caches automatically. File extensions (.js) are optional.
-	 *
-	 * @param array 	$paths		The paths to generate
+	 *  
+	 * @param array 	$files		The files to generate
 	 * @param string	$prefix 	A string to prefix to the cache file
-	 * @return string
+	 * @return void
+	 * @author Jonathan Geiger
 	 */
-	public static function javascripts(array $paths, $prefix = NULL);
+	public static function javascripts(array $files, $prefix = NULL);
 	
 	/**
-	 * Generates <link> tags based on the paths provided. 
-	 * Caches automatically. File extensions (.css) are optional.
-	 *
-	 * @param array 	$paths		The paths to generate
+	 * @param array 	$files		The files to generate
 	 * @param string	$prefix 	A string to prefix to the cache file
-	 * @return string
+	 * @return void
+	 * @author Jonathan Geiger
 	 */
-	public static function stylesheets(array $paths, $prefix = NULL);
+	public static function stylesheets(array $files, $prefix = NULL);
 	
 ## Usage
 
@@ -51,6 +50,8 @@ Note that the second argument is an option cache file prefix. This is prepended 
 so that multiple `asset::javascripts()` calls can be made without the potential for them overwriting 
 each other's cache files. Just use different prefixes.
 
+If you have asset hosts configured, a random one will be used for each tag outputted.
+
 That's all! Caching, cache expiration, and HTML generation is transparent and simple.
 
 ## Configuration
@@ -58,3 +59,16 @@ That's all! Caching, cache expiration, and HTML generation is transparent and si
 Currently, it is possible to configure quite a few options, specifically those pertaining to filesystem paths.
 
 Take a look at `config/assets.php` for a complete explanation of the properties.
+
+## Edge Cases
+
+The following are examples of files that are acceptable to pass in the `$files` array but are handled in a special way:
+
+   * *Files containing "://"*, such as `http://domain.com/javascripts/file.js` will
+     not be processed. The only thing that will be changed is that an extension 
+     will be added if it doesn't already have one.
+   * *Files beginning with a "/"*, such as `/some/javascript/file` will not have the 
+     `prefix` configuration option added to them.
+   * *Files that can't be found on the filesystem* will, quite obviously, never be cached. 
+     It will, instead, be outputted as its own HTML tag. The file will still be processed
+     according to the normal rules (a `prefix` and `extension`, random `hosts` will be added).
