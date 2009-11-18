@@ -1,7 +1,8 @@
 # Kohana 3 Asset Helper
 
 This is a simple asset helper similar to Ruby on Rails' `javascript_include_tag` and `stylesheet_link_tag`. 
-It outputs HTML tags for multiple asset files and automatically concatenates them into one file.
+It outputs HTML tags for multiple asset files and automatically concatenates them into one file. It can also automatically
+prepend random hostnames to the files.
 
 Current only `<script>` and `<style>` tags are supported. Minification is planned.
 	
