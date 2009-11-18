@@ -15,7 +15,7 @@ return array(
 		 * 
 		 * Kohana::$base_url will not be applied when using this.
 		 */
-		'hosts' => array('http://test.com/', 'http://test2.com/'),
+		'hosts' => array(),
 		
 		/**
 		 * The location on the filesystem to the paths below. 
