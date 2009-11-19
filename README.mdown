@@ -49,17 +49,13 @@ And if caching were enabled, and the module is capable of writing to the filesys
 
     <script type="text/javascript" src="/cache/prefix1257384059.js"></script>
 
-It is important to note the second argument, as it is quite flexible in what is acceptable input.
-If you pass a string, it will be *appended* to whatever you have set as your `cache_prefix` in `config/assets.php`.
-If you pass `FALSE`, caching will be disabled for that call only. If you pass an array, that array will be used to 
-override whatever is in the config. Keep in mind that if you were to use an array to set `cache_prefix`...
-
-	<?php echo asset::javascripts(array(
-		'some/javascript/file',
-		'another/javascript/file',
-	), array('cache_prefix' => 'prefix')) ?>
-	
-..then `cache_prefix` will *replace* whatever is configured instead of being *appended* as if you were to pass a string.
+It is important to note the second argument, as it is quite flexible in what is acceptable input:
+  
+  * If you pass a string, it will be *appended* to whatever you have set as your `cache_prefix` in `config/assets.php`.
+  * If you pass `FALSE`, caching will be disabled for that call only. 
+  * If you pass an array, that array will be used to override whatever is in the config. Keep in mind 
+    that if you set `cache_prefix` in the array, then `cache_prefix` will *replace* whatever is configured 
+    instead of being *appended* as if you were to pass a string.
 
 If you have asset hosts configured, a random one will be used for each tag outputted.
 
