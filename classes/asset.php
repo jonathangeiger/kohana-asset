@@ -132,7 +132,7 @@ class Asset
 	 * 
 	 * @author Jonathan Geiger
 	 */
-	public function __construct(array $files, $type, $prefix = '')
+	public function __construct(array $files, $type, $options = NULL)
 	{
 		static $config;
 		
@@ -142,20 +142,27 @@ class Asset
 			$config = Kohana::config('assets');
 		}
 		
+		// String? Append to the prefix
+		if (is_string($options))
+		{
+			$options = array('cache_prefix' => $config[$type]['cache_prefix'].$options);
+		}
+		// False? Disable caching
+		else if ($options === FALSE)
+		{
+			$options = array('cache' => FALSE);
+		}
+		// Not an array? Not useful
+		else if (!is_array($options))
+		{
+			$options = array();
+		}
+		
 		// Load the configuration
-		foreach($config[$type] as $key => $value)
+		foreach(arr::merge($config[$type], $options) as $key => $value)
 		{
 			$this->$key = $value;
 		}
-		
-		// Allow $prefix to ovverride cache if it's false
-		if ($prefix === FALSE)
-		{
-			$this->cache = FALSE;
-		}
-		
-		// Update the cache_prefix to include the optional prefix
-		$this->cache_prefix .= $prefix;
 		
 		// Set the type
 		$this->type = $type;
