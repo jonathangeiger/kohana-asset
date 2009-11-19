@@ -148,6 +148,12 @@ class Asset
 			$this->$key = $value;
 		}
 		
+		// Allow $prefix to ovverride cache if it's false
+		if ($prefix === FALSE)
+		{
+			$this->cache = FALSE;
+		}
+		
 		// Update the cache_prefix to include the optional prefix
 		$this->cache_prefix .= $prefix;
 		
