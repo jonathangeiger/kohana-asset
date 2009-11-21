@@ -4,7 +4,7 @@ This is a simple asset helper similar to Ruby on Rails' `javascript_include_tag`
 It outputs HTML tags for multiple asset files and automatically concatenates them into one file. It can also automatically
 prepend random hostnames to the files.
 
-Current only `<script>` and `<style>` tags are supported. Minification is planned.
+Current only `<script>` and `<style>` tags are supported. Minification with YUI Compressor is supported, and more lightweight minification with JSMin and CSSMin is planned.
 	
 ## Public Methods
 
@@ -63,9 +63,9 @@ That's all! Caching, cache expiration, and HTML generation is transparent and si
 
 ## Configuration
 
-Currently, it is possible to configure quite a few options, specifically those pertaining to filesystem paths.
+Currently, it is possible to configure quite a few options, specifically those pertaining to filesystem paths. Take a look at `config/assets.php` for a complete explanation of the properties.
 
-Take a look at `config/assets.php` for a complete explanation of the properties.
+The only option that may need configured for the entire system to work out of the box is the path to the YUI Compressor jar, which is included with this distribution. 
 
 ## Edge Cases
 
