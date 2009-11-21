@@ -12,6 +12,14 @@
  */
 class Asset
 {
+	/**
+	 * Configuration file, loaded on first instantiation
+	 */
+	protected static $config = array();
+	
+	/**
+	 * Constants for referencing supported types
+	 */
 	const JAVASCRIPT = 'javascripts';
 	const STYLESHEET = 'stylesheets';
 	
@@ -128,19 +136,34 @@ class Asset
 	protected $cache_prefix;
 	
 	/**
+	 * Compressor to use
+	 * 
+	 * @var string
+	 */
+	protected $compressor;
+	
+	/**
+	 * Compressor options
+	 * 
+	 * @var mixed
+	 */
+	protected $compressor_options;
+	
+	/**
 	 * Constructor 
 	 * 
 	 * @author Jonathan Geiger
 	 */
 	public function __construct(array $files, $type, $options = NULL)
-	{
-		static $config;
-		
+	{		
 		// Only do this once
-		if (!$config)
+		if (empty(asset::$config))
 		{
-			$config = Kohana::config('assets');
+			asset::$config = Kohana::config('assets');
 		}
+		
+		// Just for convenience's sake
+		$config = asset::$config;
 		
 		// String? Append to the prefix
 		if (is_string($options))
@@ -438,9 +461,9 @@ class Asset
 		$ERR = error_reporting(0);
 		
 		// Open that file!
-		$cache = fopen($cache, 'w+');
+		$handle = fopen($cache, 'w+');
 				
-		if ($cache)
+		if ($handle)
 		{
 			// That sucks. Another loop
 			foreach ($files as $file)
@@ -448,18 +471,78 @@ class Asset
 				if ($file['cache'])	
 				{
 					// Write to the cache
-					$written += fwrite($cache, file_get_contents($file['local'])."\n");
+					$written += fwrite($handle, file_get_contents($file['local'])."\n");
 				}
 			}
 			
 			// Done here
-			fclose($cache);
+			fclose($handle);
 		}
 		
+		// Attempt to compress the files
+		if ($written)
+		{
+			$this->compress($cache);
+		}
+
 		// Re-enable errors
 		error_reporting($ERR);
 		
 		return $written;
 	}
 	
+	/**
+	 * Compresses a cached file
+	 *
+	 * @param string $file 
+	 * @return mixed
+	 * @author Jonathan Geiger
+	 */
+	protected function compress($file)
+	{
+		// Ensure we have all of the required options
+		if (!$this->compressor)
+		{
+			return FALSE;
+		}
+		
+		// Support is planned for multiple compression types, even though only one is supported now
+		$method = 'compress_'.$this->compressor;
+		
+		return $this->$method($file);	
+	}
+	
+	/**
+	 * Compresses JS and CSS files using the YUI compressor
+	 *
+	 * @return void
+	 * @author Jonathan Geiger
+	 **/
+	protected function compress_yui($file)
+	{
+		if (empty(asset::$config['yui']))
+		{
+			return;
+		}
+		
+		// Determine the executable and jar file
+		$java = asset::$config['yui']['java'];
+		$jar = escapeshellarg(asset::$config['yui']['jar']);
+		$args = ($this->compressor_options) ? escapeshellarg($this->compressor_options) : '';
+		$file = escapeshellarg($file);
+		
+		// -o sets the output file to the same as the input file
+		$command = $java.' -jar '.$jar.' '.$args.' -o '.$file.' '.$file;
+		
+		// Execute it while ignoring the output. It doesn't matter whether it 
+		// fails or not really. I haven't actually tested this on windows.
+		if (substr(php_uname(), 0, 7) == "Windows")
+		{
+			pclose(popen("start /B ".$command, "r")); 
+		}
+		else 
+		{
+			exec($command." > /dev/null &");  
+		}
+	}	
 } // END class Asset

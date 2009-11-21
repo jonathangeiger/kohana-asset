@@ -58,7 +58,22 @@ return array(
 		 * added to this in a <script> tag and 'root' is automatically 
 		 * added when referencing it on the filesystem
 		 */
-		'cache_prefix' => 'cache/'
+		'cache_prefix' => 'cache/',
+		
+		/**
+		 * The compressor to use or FALSE to disable compression. 
+		 * 
+		 * 'compressor' => 'yui' // YUI Compressor
+		 */
+		'compressor' => 'yui',
+		
+		/**
+		 * Options to pass to the compressor. For YUI Compressor, a string in the 
+		 * form of shell args is what's supported. 
+		 * 
+		 * e.g. 'compressor_options' => '--nomunge --preserve-semi'
+		 */
+		'compressor_options' => NULL,
 	),
 	
 	/**
@@ -117,6 +132,38 @@ return array(
 		 * added to this in a <link> tag and 'root' is automatically 
 		 * added when referencing it on the filesystem
 		 */
-		'cache_prefix' => 'cache/'
+		'cache_prefix' => 'cache/',
+		
+		/**
+		 * The compressor to use or FALSE to disable compression. 
+		 * 
+		 * 'compressor' => 'yui' // YUI Compressor
+		 */
+		'compressor' => 'yui',
+
+		/**
+		 * Options to pass to the compressor. For YUI Compressor, a string in the 
+		 * form of shell args is what's supported. 
+		 * 
+		 * e.g. 'compressor_options' => '--nomunge --preserve-semi'
+		 */
+		'compressor_options' => NULL,
+	),
+	
+	/**
+	 * Options for configuring YUI Compressor
+	 */
+	'yui' => array(
+		
+		/**
+		 * The path to the java executable. On most UNIX systems, this 
+		 * will be in your PATH, so 'java' will be fine.
+		 */
+		'java' => 'java',
+		
+		/**
+		 * The location of the YUI jar file
+		 */
+		'jar' => MODPATH.'asset/vendor/yui/yuicompressor-2.4.2.jar',
 	)
 );
