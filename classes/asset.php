@@ -513,6 +513,62 @@ class Asset
 	}
 	
 	/**
+	 * Compresses using the very basic cssmin
+	 *
+	 * @return void
+	 * @author Jonathan Geiger
+	 **/
+	protected function compress_cssmin($file)
+	{
+		include_once Kohana::find_file('vendor', 'cssmin/cssmin-v1.0.1.b3');
+		
+		// Pretty simple, actually
+		file_put_contents($file, cssmin::minify(file_get_contents($file), $this->compressor_options));
+	}
+	
+	/**
+	 * Compresses using the Minify's CSS Compressor
+	 *
+	 * @return void
+	 * @author Jonathan Geiger
+	 **/
+	protected function compress_minify_css_compressor($file)
+	{
+		include_once Kohana::find_file('vendor', 'minify_css_compressor/Compressor');
+		
+		// Pretty simple, actually
+		file_put_contents($file, minify_css_compressor::process(file_get_contents($file), $this->compressor_options));
+	}
+	
+	/**
+	 * Compresses using the the basic JSMin compressor
+	 *
+	 * @return void
+	 * @author Jonathan Geiger
+	 **/
+	protected function compress_jsmin($file)
+	{
+		include_once Kohana::find_file('vendor', 'jsmin/jsmin-1.1.1');
+		
+		// Pretty simple, actually
+		file_put_contents($file, jsmin::minify(file_get_contents($file)));
+	}
+	
+	/**
+	 * Compresses using the Minify's CSS Compressor
+	 *
+	 * @return void
+	 * @author Jonathan Geiger
+	 **/
+	protected function compress_jsminplus($file)
+	{
+		include_once Kohana::find_file('vendor', 'jsminplus/jsminplus');
+		
+		// Pretty simple, actually
+		file_put_contents($file, jsminplus::minify(file_get_contents($file)));
+	}
+	
+	/**
 	 * Compresses JS and CSS files using the YUI compressor
 	 *
 	 * @return void
