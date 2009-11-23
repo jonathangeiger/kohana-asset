@@ -434,7 +434,10 @@ class Asset
 	 */
 	protected function cached($file, $time)
 	{
-		return ($this->cache && @filemtime($file) == $time);
+		// If filemtime() is greater than or equal to the greatest 
+		// time of the all of the files, we can assume the 
+		// currently cached version contains the newest files.
+		return ($this->cache && @filemtime($file) >= $time);
 	}
 	
 	/**
@@ -480,9 +483,6 @@ class Asset
 		{
 			// Attempt compression
 			$this->compress($cache);
-			
-			// Set the filemtime for future comparisons
-			touch($cache, $time);
 		}
 
 		// Re-enable errors
@@ -510,6 +510,40 @@ class Asset
 		$method = 'compress_'.$this->compressor;
 		
 		return $this->$method($file);	
+	}
+	
+	/**
+	 * Compresses JS and CSS files using the YUI compressor
+	 *
+	 * @return void
+	 * @author Jonathan Geiger
+	 **/
+	protected function compress_yui($file)
+	{
+		if (empty(asset::$config['yui']))
+		{
+			return;
+		}
+		
+		// Determine the executable and jar file
+		$java = asset::$config['yui']['java'];
+		$jar = escapeshellarg(asset::$config['yui']['jar']);
+		$args = ($this->compressor_options) ? escapeshellarg($this->compressor_options) : '';
+		$file = escapeshellarg($file);
+		
+		// -o sets the output file to the same as the input file
+		$command = $java.' -jar '.$jar.' '.$args.' -o '.$file.' '.$file;
+		
+		// Execute the command in the background to save us from JAVA. I haven't 
+		// actually tested this on windows.
+		if (substr(php_uname(), 0, 7) == 'Windows')
+		{
+			pclose(popen('start /B '.$command, 'r')); 
+		}
+		else 
+		{
+			exec($command.' > /dev/null &');  
+		}
 	}
 	
 	/**
@@ -566,31 +600,5 @@ class Asset
 		
 		// Pretty simple, actually
 		file_put_contents($file, jsminplus::minify(file_get_contents($file)));
-	}
-	
-	/**
-	 * Compresses JS and CSS files using the YUI compressor
-	 *
-	 * @return void
-	 * @author Jonathan Geiger
-	 **/
-	protected function compress_yui($file)
-	{
-		if (empty(asset::$config['yui']))
-		{
-			return;
-		}
-		
-		// Determine the executable and jar file
-		$java = asset::$config['yui']['java'];
-		$jar = escapeshellarg(asset::$config['yui']['jar']);
-		$args = ($this->compressor_options) ? escapeshellarg($this->compressor_options) : '';
-		$file = escapeshellarg($file);
-		
-		// -o sets the output file to the same as the input file
-		$command = $java.' -jar '.$jar.' '.$args.' -o '.$file.' '.$file;
-		
-		// Execute the command. We have to wait so that we can set the filemtime
-		@exec($command);
 	}	
 } // END class Asset

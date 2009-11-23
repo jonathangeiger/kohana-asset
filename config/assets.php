@@ -17,7 +17,7 @@ return array(
 		'prefix' => 'javascripts/',
 		'extension' => '.js',
 		'cache' => 'cache/javascript-min.js',
-		'compressor' => 'jsminplus',
+		'compressor' => 'yui',
 		'compressor_options' => NULL,
 	),
 	
@@ -31,7 +31,7 @@ return array(
 		'prefix' => 'stylesheets/',
 		'extension' => '.css',
 		'cache' => 'cache/stylesheet-min.js',
-		'compressor' => 'minify_css_compressor',
+		'compressor' => 'yui',
 		'compressor_options' => NULL,
 	),
 	
