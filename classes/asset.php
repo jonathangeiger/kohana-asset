@@ -127,14 +127,7 @@ class Asset
 	 * @var boolean
 	 */
 	protected $cached;
-	
-	/**
-	 * Prefix for cached files.
-	 * 
-	 * @var string
-	 */
-	protected $cache_prefix;
-	
+		
 	/**
 	 * Compressor to use
 	 * 
@@ -168,7 +161,7 @@ class Asset
 		// String? Append to the prefix
 		if (is_string($options))
 		{
-			$options = array('cache_prefix' => $config[$type]['cache_prefix'].$options);
+			$options = array('cache' => $options);
 		}
 		// False? Disable caching
 		else if ($options === FALSE)
@@ -222,7 +215,7 @@ class Asset
 		{
 			foreach($this->files as $file)
 			{
-				if ($this->cached && $file['cache']) continue;
+				if ($this->cached && $file['cached']) continue;
 				
 				switch($this->type)
 				{
@@ -262,11 +255,12 @@ class Asset
 	 * Determines a large amount of information about a particular 
 	 * file, all of which are useful in the final output.
 	 *
-	 * @param array 	$path 		The path to fix
+	 * @param string	$path 	The path to fix
+	 * @param string	$mtime	Available since cached files already know their mtime
 	 * @return void
 	 * @author Jonathan Geiger
 	 */
-	protected function file_info($path)
+	protected function file_info($path, $prefix = TRUE, $mtime = NULL)
 	{			
 		// Ensure we have a file extension
 		if ($this->extension !== substr($path, -strlen($this->extension)))
@@ -283,7 +277,7 @@ class Asset
 			// Last modified time
 			'mtime' => NULL,
 			// Whether or not to cache
-			'cache' => $this->cache
+			'cached' => (bool)$this->cache
 		);
 		
 		// Check to see if it's a path pointing to a domain, 
@@ -291,7 +285,7 @@ class Asset
 		if (FALSE !== strpos($path, '://'))
 		{
 			// Don't cache these
-			$info['cache'] = FALSE;
+			$info['cached'] = FALSE;
 			
 			// Disallow local path access
 			$info['local'] = NULL;
@@ -301,7 +295,7 @@ class Asset
 		}
 				
 		// Append the prefix only if it's a relative path
-		if (substr($path, 0, 1) != '/')
+		if (substr($path, 0, 1) != '/' && $prefix === TRUE)
 		{
 			$info['remote'] = $info['local'] = $this->prefix.$path;
 		}
@@ -311,7 +305,7 @@ class Asset
 		$info['local'] = $this->root.$info['local'];
 		
 		// See if we can find it.
-		$info['mtime'] = @filemtime($info['local']);
+		$info['mtime'] = ($mtime !== NULL) ? $mtime : @filemtime($info['local']);
 		
 		// filemtime() doubles as a check for file existence,
 		// if it's not there the file won't be cached.
@@ -329,7 +323,7 @@ class Asset
 		// cache this down the line and it's outputted as its own tag
 		else
 		{
-			$info['cache'] = FALSE;
+			$info['cached'] = FALSE;
 		}
 				
 		return $info;
@@ -361,28 +355,29 @@ class Asset
 					$greatest = $file['mtime'];
 				}			
 			}
-
-			// Now that we've found the cache path, we can 
-			// just concatenate it all together
-			$cache = $this->cache_prefix.$greatest.$this->extension;
 			
 			// Set this flag so that we know not to output cached items
 			$this->cached = FALSE;
-			
-			// Check the cache
-			if ($this->cached($this->host_root.$cache) || $this->cache($files, $this->host_root.$cache))
+
+			// Now that we've found the cache time, we can 
+			// compare the times to see if it needs to be regenerated
+			if ($this->cache)
 			{
-				// Append this to the files array just as if it were a normal file
-				// When it's all rendered, anything with cache=FALSE will be outputted, since it wasn't cached
-				array_unshift($files, array(
-					'local' => $this->host_root.$cache,
-					'remote' => $this->host.$cache,
-					'cache' => FALSE,
-					'mtime' => NULL
-				));
-				
-				// Set this flag so that we know not to output cached items
-				$this->cached = TRUE;
+				$cache = $this->file_info($this->cache, FALSE, $greatest);
+
+				// Check the cache
+				if ($this->cached($cache['local'], $greatest) || $this->cache($files, $cache['local'], $greatest))
+				{
+					// Manually set cache to false, so that this file is outputted
+					$cache['cached'] = FALSE;
+					
+					// Append this to the files array just as if it were a normal file
+					// When it's all rendered, anything with cache=FALSE will be outputted, since it wasn't cached
+					array_unshift($files, $cache);
+
+					// Set this flag so that we know not to output cached items
+					$this->cached = TRUE;
+				}
 			}
 			
 			$this->files = $files;
@@ -433,12 +428,13 @@ class Asset
 	 * the system is accepting cached files
 	 *
 	 * @param string 	$file 	The file to check is cached
+	 * @param int		$time	The time that the cached file should have
 	 * @return void
 	 * @author Jonathan Geiger
 	 */
-	protected function cached($file)
+	protected function cached($file, $time)
 	{
-		return ($this->cache && file_exists($file));
+		return ($this->cache && @filemtime($file) == $time);
 	}
 	
 	/**
@@ -446,10 +442,11 @@ class Asset
 	 *
 	 * @param string 	$paths 	The paths to cache
 	 * @param string 	$cache 	A path to the file to concatenate $paths to
+	 * @param int		$time	The time that the cached file should have
 	 * @return mixed
 	 * @author Jonathan Geiger
 	 */
-	protected function cache($files, $cache)
+	protected function cache($files, $cache, $time)
 	{
 		// Make sure we're allowed to cache
 		if (!$this->cache) return FALSE;
@@ -468,7 +465,7 @@ class Asset
 			// That sucks. Another loop
 			foreach ($files as $file)
 			{					
-				if ($file['cache'])	
+				if ($file['cached'])	
 				{
 					// Write to the cache
 					$written += fwrite($handle, file_get_contents($file['local'])."\n");
@@ -479,10 +476,13 @@ class Asset
 			fclose($handle);
 		}
 		
-		// Attempt to compress the files
 		if ($written)
 		{
+			// Attempt compression
 			$this->compress($cache);
+			
+			// Set the filemtime for future comparisons
+			touch($cache, $time);
 		}
 
 		// Re-enable errors
@@ -533,6 +533,10 @@ class Asset
 		
 		// -o sets the output file to the same as the input file
 		$command = $java.' -jar '.$jar.' '.$args.' -o '.$file.' '.$file;
+		
+		// Execute the command. We have to wait so that we can set the filemtime
+		exec($command);
+		return;
 		
 		// Execute it while ignoring the output. It doesn't matter whether it 
 		// fails or not really. I haven't actually tested this on windows.
