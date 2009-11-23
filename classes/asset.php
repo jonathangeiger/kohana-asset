@@ -535,18 +535,6 @@ class Asset
 		$command = $java.' -jar '.$jar.' '.$args.' -o '.$file.' '.$file;
 		
 		// Execute the command. We have to wait so that we can set the filemtime
-		exec($command);
-		return;
-		
-		// Execute it while ignoring the output. It doesn't matter whether it 
-		// fails or not really. I haven't actually tested this on windows.
-		if (substr(php_uname(), 0, 7) == "Windows")
-		{
-			pclose(popen("start /B ".$command, "r")); 
-		}
-		else 
-		{
-			exec($command." > /dev/null &");  
-		}
+		@exec($command);
 	}	
 } // END class Asset
