@@ -30,7 +30,7 @@ return array(
 		'root' => DOCROOT,
 		'prefix' => 'stylesheets/',
 		'extension' => '.css',
-		'cache' => 'cache/stylesheet-min.js',
+		'cache' => 'cache/stylesheet-min.css',
 		'compressor' => 'yui',
 		'compressor_options' => NULL,
 	),
