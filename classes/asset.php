@@ -143,6 +143,13 @@ class Asset
 	protected $compressor_options;
 	
 	/**
+	 * Whether or not to append a cache buster
+	 * 
+	 * @var mixed
+	 */
+	protected $cache_bust;
+	
+	/**
 	 * Constructor 
 	 * 
 	 * @author Jonathan Geiger
@@ -312,7 +319,10 @@ class Asset
 		if ($info['mtime'])
 		{
 			// Append a cachebuster
-			$info['remote'] .= '?'.$info['mtime'];
+			if ($this->cache_bust)
+			{
+				$info['remote'] .= '?'.$info['mtime'];
+			}
 			
 			// The host is empty if there aren't any 
 			// configured, so the prepend is safe
@@ -506,7 +516,7 @@ class Asset
 			return FALSE;
 		}
 		
-		// Support is planned for multiple compression types, even though only one is supported now
+		// Choose the method to call based on the configured compressor
 		$method = 'compress_'.$this->compressor;
 		
 		return $this->$method($file);	

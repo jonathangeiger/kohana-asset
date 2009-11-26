@@ -19,6 +19,7 @@ return array(
 		'cache' => 'cache/javascript-min.js',
 		'compressor' => 'yui',
 		'compressor_options' => NULL,
+		'cache_bust' => TRUE,
 	),
 	
 	/**
@@ -33,6 +34,7 @@ return array(
 		'cache' => 'cache/stylesheet-min.css',
 		'compressor' => 'yui',
 		'compressor_options' => NULL,
+		'cache_bust' => TRUE,
 	),
 	
 	/**
